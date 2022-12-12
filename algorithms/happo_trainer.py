@@ -5,6 +5,7 @@ from utils.util import get_gard_norm, huber_loss, mse_loss
 from utils.popart import PopArt
 from algorithms.utils.util import check
 
+
 class HAPPO():
     """
     Trainer class for HAPPO to update policies.
@@ -116,7 +117,7 @@ class HAPPO():
 
         factor_batch = check(factor_batch).to(**self.tpdv)
         # Reshape to do in a single forward pass for all steps
-        values, action_log_probs, dist_entropy = self.policy.evaluate_actions(share_obs_batch,
+        values, action_log_probs, dist_entropy, pre_action_log_probs = self.policy.evaluate_actions(share_obs_batch,
                                                                               obs_batch, 
                                                                               rnn_states_batch, 
                                                                               rnn_states_critic_batch, 
@@ -138,7 +139,7 @@ class HAPPO():
         else:
             policy_action_loss = -torch.sum(factor_batch * torch.min(surr1, surr2), dim=-1, keepdim=True).mean()
 
-
+        policy_social_loss = nn.functional.kl_div(action_log_probs, torch.exp(pre_action_log_probs))
         # if self._use_policy_active_masks:
         #     policy_action_loss = (-torch.sum(torch.clamp(factor_batch, 1.0 - self.clip_param, 1.0 + self.clip_param) * torch.min(surr1, surr2),
         #                                      dim=-1,
@@ -154,6 +155,7 @@ class HAPPO():
 
         if update_actor:
             (policy_loss - dist_entropy * self.entropy_coef).backward()
+            (policy_loss + dist_entropy * policy_social_loss).backward()
 
         if self._use_max_grad_norm:
             actor_grad_norm = nn.utils.clip_grad_norm_(self.policy.actor.parameters(), self.max_grad_norm)

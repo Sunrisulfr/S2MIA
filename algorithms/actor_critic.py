@@ -284,7 +284,7 @@ class Variational_Actor(nn.Module):
                                                                     active_masks=
                                                                     active_masks if self._use_policy_active_masks
                                                                     else None)
-                return action_log_probs, dist_entropy, pre_actor_features
+                return action_log_probs, dist_entropy, pre_actor_log_probs
             return action_log_probs, dist_entropy
 
 

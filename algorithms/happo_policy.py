@@ -1,5 +1,5 @@
 import torch
-from algorithms.actor_critic import Actor, Critic
+from algorithms.actor_critic import Actor, Critic, Variational_Actor
 from utils.util import update_linear_schedule
 
 
@@ -26,7 +26,8 @@ class HAPPO_Policy:
         self.share_obs_space = cent_obs_space
         self.act_space = act_space
 
-        self.actor = Actor(args, self.obs_space, self.act_space, self.device)
+        # self.actor = Actor(args, self.obs_space, self.act_space, self.device)
+        self.actor = Variational_Actor(args, self.obs_space. self.act_sapace, self.device)
 
         ######################################Please Note#########################################
         #####   We create one critic for each agent, but they are trained with same data     #####
@@ -111,7 +112,7 @@ class HAPPO_Policy:
         :return dist_entropy: (torch.Tensor) action distribution entropy for the given inputs.
         """
 
-        action_log_probs, dist_entropy = self.actor.evaluate_actions(obs,
+        action_log_probs, dist_entropy, pre_action_log_probs = self.actor.evaluate_actions(obs,
                                                                 rnn_states_actor,
                                                                 action,
                                                                 masks,
@@ -119,7 +120,7 @@ class HAPPO_Policy:
                                                                 active_masks)
 
         values, _ = self.critic(cent_obs, rnn_states_critic, masks)
-        return values, action_log_probs, dist_entropy
+        return values, action_log_probs, dist_entropy, pre_actor_log_probs
 
 
     def act(self, obs, rnn_states_actor, masks, available_actions=None, deterministic=False):
