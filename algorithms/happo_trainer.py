@@ -154,7 +154,7 @@ class HAPPO():
         self.policy.actor_optimizer.zero_grad()
 
         if update_actor:
-            (policy_loss - dist_entropy * self.entropy_coef).backward()
+            # (policy_loss - dist_entropy * self.entropy_coef).backward()
             (policy_loss + dist_entropy * policy_social_loss).backward()
 
         if self._use_max_grad_norm:
