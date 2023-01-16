@@ -101,7 +101,7 @@ class HAPPO():
         """
         share_obs_batch, obs_batch, rnn_states_batch, rnn_states_critic_batch, actions_batch, \
         value_preds_batch, return_batch, masks_batch, active_masks_batch, old_action_log_probs_batch, \
-        adv_targ, available_actions_batch, factor_batch = sample
+        adv_targ, available_actions_batch, other_actions_batch, factor_batch = sample
 
 
 
@@ -124,8 +124,9 @@ class HAPPO():
                                                                               actions_batch, 
                                                                               masks_batch, 
                                                                               available_actions_batch,
-                                                                              active_masks_batch)
+                                                                              active_masks_batch, other_actions_batch)
         # actor update
+       
         imp_weights = torch.exp(action_log_probs - old_action_log_probs_batch)
 
         # print(imp_weights,"imp_weights")
@@ -139,7 +140,8 @@ class HAPPO():
         else:
             policy_action_loss = -torch.sum(factor_batch * torch.min(surr1, surr2), dim=-1, keepdim=True).mean()
 
-        policy_social_loss = nn.functional.kl_div(action_log_probs, torch.exp(pre_action_log_probs))
+        
+        policy_social_loss = nn.functional.kl_div(action_log_probs, torch.exp(pre_action_log_probs)) / actions_batch.shape[0]
         # if self._use_policy_active_masks:
         #     policy_action_loss = (-torch.sum(torch.clamp(factor_batch, 1.0 - self.clip_param, 1.0 + self.clip_param) * torch.min(surr1, surr2),
         #                                      dim=-1,
@@ -155,7 +157,7 @@ class HAPPO():
 
         if update_actor:
             # (policy_loss - dist_entropy * self.entropy_coef).backward()
-            (policy_loss + dist_entropy * policy_social_loss).backward()
+            (policy_loss + self.entropy_coef * policy_social_loss).backward()
 
         if self._use_max_grad_norm:
             actor_grad_norm = nn.utils.clip_grad_norm_(self.policy.actor.parameters(), self.max_grad_norm)

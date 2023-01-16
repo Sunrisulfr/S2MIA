@@ -73,6 +73,11 @@ class Runner(object):
         print("share_observation_space: ", self.envs.share_observation_space)
         print("observation_space: ", self.envs.observation_space)
         print("action_space: ", self.envs.action_space)
+        total_action_space = 0
+        for i in range(0,self.num_agents):
+     
+            total_action_space += self.envs.action_space[i].shape[0]
+       
 
         self.policy = []
         for agent_id in range(self.num_agents):
@@ -82,6 +87,7 @@ class Runner(object):
                         self.envs.observation_space[agent_id],
                         share_observation_space,
                         self.envs.action_space[agent_id],
+                        total_action_space - self.envs.action_space[agent_id].shape[0],
                         device = self.device)
             self.policy.append(po)
 
@@ -98,7 +104,7 @@ class Runner(object):
             bu = SeparatedReplayBuffer(self.all_args,
                                        self.envs.observation_space[agent_id],
                                        share_observation_space,
-                                       self.envs.action_space[agent_id])
+                                       self.envs.action_space[agent_id], total_action_space - self.envs.action_space[agent_id].shape[0])
             self.buffer.append(bu)
             self.trainer.append(tr)
             
@@ -150,7 +156,7 @@ class Runner(object):
                                                             self.buffer[agent_id].actions.reshape(-1, *self.buffer[agent_id].actions.shape[2:]),
                                                             self.buffer[agent_id].masks[:-1].reshape(-1, *self.buffer[agent_id].masks.shape[2:]),
                                                             available_actions,
-                                                            self.buffer[agent_id].active_masks[:-1].reshape(-1, *self.buffer[agent_id].active_masks.shape[2:]))
+                                                            self.buffer[agent_id].active_masks[:-1].reshape(-1, *self.buffer[agent_id].active_masks.shape[2:]), np.array([None]))
             train_info = self.trainer[agent_id].train(self.buffer[agent_id])
 
             if self.all_args.algorithm_name == "hatrpo":
@@ -166,7 +172,7 @@ class Runner(object):
                                                             self.buffer[agent_id].actions.reshape(-1, *self.buffer[agent_id].actions.shape[2:]),
                                                             self.buffer[agent_id].masks[:-1].reshape(-1, *self.buffer[agent_id].masks.shape[2:]),
                                                             available_actions,
-                                                            self.buffer[agent_id].active_masks[:-1].reshape(-1, *self.buffer[agent_id].active_masks.shape[2:]))
+                                                            self.buffer[agent_id].active_masks[:-1].reshape(-1, *self.buffer[agent_id].active_masks.shape[2:]), np.array([None]))
 
             factor = factor*_t2n(torch.exp(new_actions_logprob-old_actions_logprob).reshape(self.episode_length,self.n_rollout_threads,action_dim))
             train_infos.append(train_info)      

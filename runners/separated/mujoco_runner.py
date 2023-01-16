@@ -35,7 +35,7 @@ class MujocoRunner(Runner):
                 # Sample actions
                 values, actions, action_log_probs, rnn_states, rnn_states_critic = self.collect(step)
 
-                # Obser reward and next obs
+                # Obser reward and next obsinsert
                 obs, share_obs, rewards, dones, infos, _ = self.envs.step(actions)
 
                 dones_env = np.all(dones, axis=1)
@@ -151,13 +151,15 @@ class MujocoRunner(Runner):
 
         if not self.use_centralized_V:
             share_obs = obs
-
+   
         for agent_id in range(self.num_agents):
+            other_actions = np.concatenate([actions[:,:agent_id].copy(), actions[:,(agent_id+1):].copy()], axis=1)
+           
             self.buffer[agent_id].insert(share_obs[:, agent_id], obs[:, agent_id], rnn_states[:, agent_id],
                                          rnn_states_critic[:, agent_id], actions[:, agent_id],
                                          action_log_probs[:, agent_id],
                                          values[:, agent_id], rewards[:, agent_id], masks[:, agent_id], None,
-                                         active_masks[:, agent_id], None)
+                                         active_masks[:, agent_id], None, other_actions.reshape((actions.shape[0],other_actions.shape[1]*other_actions.shape[2])))
 
     def log_train(self, train_infos, total_num_steps):
         print("average_step_rewards is {}.".format(np.mean(self.buffer[0].rewards)))

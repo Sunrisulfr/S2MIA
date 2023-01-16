@@ -3,6 +3,7 @@ import torch.nn as nn
 from algorithms.utils.util import init, check
 from algorithms.utils.cnn import CNNBase
 from algorithms.utils.mlp import MLPBase
+from algorithms.utils.mlp import MLPLayer
 from algorithms.utils.rnn import RNNLayer
 from algorithms.utils.act import ACTLayer
 from utils.util import get_shape_from_obs_space
@@ -177,8 +178,8 @@ class Variational_Actor(nn.Module):
     :param action_space: (gym.Space) action space.
     :param device: (torch.device) specifies the device to run on (cpu/gpu).
     """
-    def __init__(self, args, obs_space, action_space, device=torch.device("cpu")):
-        super(Actor, self).__init__()
+    def __init__(self, args, obs_space, action_space, other_action_space, device=torch.device("cpu")):
+        super(Variational_Actor, self).__init__()
         self.hidden_size = args.hidden_size
         self.args=args
         self._gain = args.gain
@@ -276,7 +277,8 @@ class Variational_Actor(nn.Module):
                                                                     active_masks=
                                                                     active_masks if self._use_policy_active_masks
                                                                     else None)
-            if other_actions:
+            if other_actions.any() != None:
+                other_actions = check(other_actions).to(**self.tpdv)
                 other_actions_features = self.other_act_encoder(other_actions)
                 pre_actor_features = torch.cat((other_actions_features, actor_features),1)
                 pre_actor_log_probs, _ = self.pre_act.evaluate_actions(pre_actor_features,
@@ -284,6 +286,7 @@ class Variational_Actor(nn.Module):
                                                                     active_masks=
                                                                     active_masks if self._use_policy_active_masks
                                                                     else None)
+                                                               
                 return action_log_probs, dist_entropy, pre_actor_log_probs
             return action_log_probs, dist_entropy
 
